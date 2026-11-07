@@ -1,0 +1,16 @@
+# Archivos de configuración y trabajo local
+.partner/
+
+# Artefactos compilados de Java
+*.class
+
+# Directorios de salida de compilación
+bin/
+bin-test/
+out/
+build/
+target/
+
+# Archivos temporales comunes
+*.log
+.DS_Store
