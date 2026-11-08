@@ -7,7 +7,7 @@ rmi/tls/
 # Artefactos compilados de Java
 *.class
 
-# Directorios de salida de compilación
+# Directorios de salida de compilación (RMI y Maven/gRPC)
 bin/
 bin-test/
 out/

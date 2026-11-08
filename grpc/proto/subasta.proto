@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package subasta.v1;
+
+option java_package = "grpc.generated";
+option java_multiple_files = true;
+option java_outer_classname = "SubastaProtocol";
+
+// producto es la clave única del catálogo; vendedor y usuario son nombres visibles.
+message RegistroUsuarioRequest {
+  string usuario = 1;
+}
+
+message RegistroUsuarioResponse {
+  bool registrado = 1;
+  string mensaje = 2;
+}
+
+message PublicarProductoRequest {
+  string vendedor = 1;
+  string producto = 2;
+  float precio_inicial = 3;
+}
+
+message PublicarProductoResponse {
+  bool publicado = 1;
+  string mensaje = 2;
+}
+
+message ConsultaCatalogoRequest {}
+
+message CatalogoResponse {
+  repeated Producto productos = 1;
+}
+
+message Producto {
+  string vendedor = 1;
+  string nombre = 2;
+  float precio_inicial = 3;
+  float precio_actual = 4;
+}
+
+message OfertaRequest {
+  string comprador = 1;
+  string producto = 2;
+  float monto = 3;
+}
+
+enum ResultadoOferta {
+  RESULTADO_OFERTA_NO_ESPECIFICADO = 0;
+  OFERTA_ACEPTADA = 1;
+  OFERTA_MONTO_INSUFICIENTE = 2;
+  OFERTA_PRODUCTO_NO_EXISTE = 3;
+}
+
+message OfertaResponse {
+  ResultadoOferta resultado = 1;
+  float precio_actual = 2;
+  string mensaje = 3;
+}
+
+message SuscripcionRequest {
+  string usuario = 1;
+}
+
+// Cada evento contiene un snapshot completo del producto tras publicarse o cambiar su precio.
+message ProductoActualizado {
+  Producto producto = 1;
+  uint64 version = 2;
+}
+
+message DesconexionRequest {
+  string usuario = 1;
+}
+
+message DesconexionResponse {
+  bool desconectado = 1;
+}
+
+service SubastaService {
+  rpc RegistrarUsuario(RegistroUsuarioRequest) returns (RegistroUsuarioResponse);
+  rpc PublicarProducto(PublicarProductoRequest) returns (PublicarProductoResponse);
+  rpc ConsultarCatalogo(ConsultaCatalogoRequest) returns (CatalogoResponse);
+  rpc Ofertar(OfertaRequest) returns (OfertaResponse);
+  rpc SuscribirCambios(SuscripcionRequest) returns (stream ProductoActualizado);
+  rpc Desconectar(DesconexionRequest) returns (DesconexionResponse);
+}
