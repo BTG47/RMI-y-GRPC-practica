@@ -1,5 +1,7 @@
 import java.rmi.Naming;
 import java.rmi.RemoteException;
+import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
@@ -14,12 +16,30 @@ public class PruebasIntegracion {
 
     private static final String URL_POR_DEFECTO = "rmi://localhost:1099/Subasta";
 
+    private static RMIClientSocketFactory clienteTls;
+    private static RMIServerSocketFactory servidorTls;
+
     public static void main(String[] args) {
-        String url = args.length > 0 ? args[0] : URL_POR_DEFECTO;
+        boolean tls = false;
+        String url = URL_POR_DEFECTO;
+        for (String arg : args) {
+            if ("--tls".equals(arg)) {
+                tls = true;
+            } else {
+                url = arg;
+            }
+        }
+
+        if (tls) {
+            clienteTls = FabricaTls.cliente();
+            servidorTls = FabricaTls.servidor();
+        }
 
         SubastaInterface subasta;
         try {
-            subasta = (SubastaInterface) Naming.lookup(url);
+            subasta = tls
+                    ? FabricaTls.lookup(url, clienteTls)
+                    : (SubastaInterface) Naming.lookup(url);
         } catch (Exception e) {
             System.out.println("No se pudo conectar al servidor en " + url + ": " + e);
             System.out.println("Arranca 'rmiregistry' y 'ServidorMain' antes de ejecutar esta prueba.");
@@ -35,10 +55,10 @@ public class PruebasIntegracion {
         CallbackRemoto reemplazo = null;
 
         try {
-            ana = new CallbackRemoto(false);
-            beto = new CallbackRemoto(false);
-            muerto = new CallbackRemoto(true);
-            reemplazo = new CallbackRemoto(false);
+            ana = creaCallback(false);
+            beto = creaCallback(false);
+            muerto = creaCallback(true);
+            reemplazo = creaCallback(false);
 
             pruebaConexion(subasta, base, ana, beto);
             String producto = pruebaCatalogoYOfertas(subasta, base, ana, beto);
@@ -227,6 +247,13 @@ public class PruebasIntegracion {
         }
     }
 
+    private static CallbackRemoto creaCallback(boolean falla) throws RemoteException {
+        if (clienteTls != null) {
+            return new CallbackRemoto(falla, clienteTls, servidorTls);
+        }
+        return new CallbackRemoto(falla);
+    }
+
     private static void desexporta(CallbackRemoto callback) {
         if (callback != null) {
             try {
@@ -246,6 +273,12 @@ public class PruebasIntegracion {
         private final boolean falla;
 
         CallbackRemoto(boolean falla) throws RemoteException {
+            this.falla = falla;
+        }
+
+        CallbackRemoto(boolean falla, RMIClientSocketFactory csf,
+                       RMIServerSocketFactory ssf) throws RemoteException {
+            super(0, csf, ssf);
             this.falla = falla;
         }
 

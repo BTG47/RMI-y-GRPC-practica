@@ -20,7 +20,8 @@ rmi/
   bin/        clases compiladas de producción
   bin-test/   clases compiladas de las pruebas
   run/        scripts de arranque y pruebas
-  docs/       diagramas, evidencias y logs
+  tls/        material de demo (CA, keystores y truststore); no se versiona
+  docs/       diagramas, evidencias, seguridad y logs
 ```
 
 Los seis `.java` originales de la raíz del repositorio no se modificaron; la
@@ -139,6 +140,73 @@ Resultado esperado: `OK: pruebas de integración RMI (80 comprobaciones)`.
 
 Los logs de la última ejecución están en `docs/logs/`.
 
+## Perfil TLS opcional
+
+El perfil plano anterior sigue siendo el predeterminado y no depende de
+certificados. El perfil TLS añade TLS y mTLS en registro, servicio y callbacks;
+el registro SSL se crea embebido en el proceso servidor, porque el
+`rmiregistry` externo no acepta factories SSL estándar.
+
+### Keystores de demo
+
+```bash
+cd rmi
+./run/genera-keystores.sh
+```
+
+Genera una CA local, el certificado del servidor, el del cliente y un
+truststore compartido en `rmi/tls/`. La contraseña de demo es `changeit`.
+`rmi/tls/` está en `.gitignore`: son claves privadas de práctica y no deben
+publicarse. Para regenerar el material:
+
+```bash
+./run/genera-keystores.sh --force
+```
+
+### Arranque manual en modo TLS
+
+```bash
+cd rmi
+java -Djavax.net.ssl.keyStore=tls/server/server.p12 \
+     -Djavax.net.ssl.keyStorePassword=changeit \
+     -Djavax.net.ssl.trustStore=tls/truststore.p12 \
+     -Djavax.net.ssl.trustStorePassword=changeit \
+     -Djava.rmi.server.hostname=localhost \
+     -cp bin ServidorMain --tls 1100 Subasta
+```
+
+En otra terminal:
+
+```bash
+cd rmi
+java -Djavax.net.ssl.keyStore=tls/client/client.p12 \
+     -Djavax.net.ssl.keyStorePassword=changeit \
+     -Djavax.net.ssl.trustStore=tls/truststore.p12 \
+     -Djavax.net.ssl.trustStorePassword=changeit \
+     -Djava.rmi.server.hostname=localhost \
+     -cp bin Principal --tls rmi://localhost:1100/Subasta
+```
+
+El servidor TLS usa el puerto `1100` para no chocar con el perfil plano
+(`1099`). El flag `--tls` es obligatorio en ambos lados: no hay negociación
+automática entre perfiles.
+
+### Pruebas TLS
+
+```bash
+cd rmi
+./run/pruebas-tls.sh            # 10 unitarias + 80 de integración
+./run/pruebas-tls-negativas.sh  # 3 rechazos esperados
+```
+
+El primer script arranca el servidor TLS con registro embebido y deja los logs
+en `docs/logs/tls/`. El segundo comprueba que un cliente sin certificado, un
+certificado de otra CA y un hostname fuera del SAN son rechazados en el
+handshake; además verifica que el servidor sigue vivo y que un cliente válido
+puede conectar después. Detalles y límites en `docs/SEGURIDAD.md`; el registro
+de las tareas humanas T1/T2 (ya completadas) está en `docs/TAREAS-TLS.md` y los
+diagramas TLS en `docs/DIAGRAMAS.md`.
+
 ## Concurrencia y fallos
 
 - El adaptador remoto usa un **lock global**. Dentro del lock se ejecutan la comprobación y
@@ -155,7 +223,8 @@ Los logs de la última ejecución están en `docs/logs/`.
 
 ## Limitaciones conocidas
 
-- Sin TLS ni autenticación: es un extra opcional fuera del alcance actual.
+- El perfil plano no tiene TLS ni autenticación. El perfil TLS es un extra
+  opcional y separado; mTLS autentica procesos, no usuarios de la subasta.
 - Sin persistencia: al reiniciar el servidor se pierden usuarios, productos y ofertas.
 - Las llamadas remotas del cliente se hacen en el EDT (decisión aceptada); una red lenta
   puede congelar la UI mientras dura la llamada.

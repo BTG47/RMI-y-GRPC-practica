@@ -1,7 +1,6 @@
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -15,7 +14,7 @@ import javax.swing.event.ListSelectionListener;
 public class SubastaControlador implements ActionListener, ListSelectionListener {
 
     private final SubastaVista vista;
-    private final String url;
+    private final Transporte transporte;
     private final CachePrecios precios = new CachePrecios();
 
     private SubastaInterface subasta;
@@ -23,8 +22,12 @@ public class SubastaControlador implements ActionListener, ListSelectionListener
     private volatile String usuarioConectado;
 
     public SubastaControlador(SubastaVista vista, String url) {
+        this(vista, new TransportePlano(url));
+    }
+
+    public SubastaControlador(SubastaVista vista, Transporte transporte) {
         this.vista = vista;
-        this.url = url;
+        this.transporte = transporte;
     }
 
     @Override
@@ -63,10 +66,10 @@ public class SubastaControlador implements ActionListener, ListSelectionListener
 
         try {
             if (subasta == null) {
-                subasta = (SubastaInterface) Naming.lookup(url);
+                subasta = transporte.lookup();
             }
             if (callback == null) {
-                callback = new ClienteCallbackImpl(this);
+                callback = transporte.crearCallback(this);
             }
             if (!subasta.conecta(usuario, callback)) {
                 vista.setEstado("Ese usuario ya tiene una sesión activa");

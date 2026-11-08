@@ -1,6 +1,6 @@
 # Evidencias de las siete pruebas
 
-Fecha de la última ejecución automática: **2026-11-06**.
+Fecha de la última ejecución automática: **2026-11-07** (perfil plano y perfil TLS).
 
 El harness cubre la lógica distribuida (servidor, callbacks, concurrencia y fallos). Las
 pruebas que dependen de la interfaz Swing se documentan con capturas manuales en
@@ -53,6 +53,48 @@ cd -
 java -cp rmi/bin ServidorMain 11100
 # Esperado: ClassNotFoundException: SubastaInterface
 ```
+
+## Perfil TLS (extra opcional)
+
+El perfil TLS no reemplaza al plano: se ejecuta con `--tls` y un registro SSL
+embebido en el puerto `1100`. Cubre registro, servicio y callbacks con TLS/mTLS.
+
+### Logs automáticos TLS
+
+| Archivo | Suite | Resultado |
+|---|---|---|
+| `logs/tls/pruebas-tls-unit.log` | Fábricas SSL, URL y transportes | `OK: pruebas TLS (10 comprobaciones)` |
+| `logs/tls/integracion-tls.log` | Registro + servicio + callbacks TLS | `OK: pruebas de integración RMI (80 comprobaciones)` |
+| `logs/tls/servidor-tls.log` | Servidor TLS con registro embebido | publicado en `rmi://localhost:1100/Subasta` |
+| `logs/tls/servidor-tls-negativas.log` | Servidor aislado de las negativas | publicado en `rmi://localhost:1101/Subasta` |
+
+### Pruebas negativas TLS
+
+Las tres deben ser **rechazadas** en el handshake, no aceptadas ni fallar por
+otra causa:
+
+| Caso | Log | Señal observada |
+|---|---|---|
+| Cliente sin certificado | `logs/tls/negativa-sin-certificado-cliente.log` | `certificate_required` |
+| Certificado firmado por otra CA | `logs/tls/negativa-certificado-de-otra-ca.log` | `certificate_required`, o cierre de conexión (`Tubería rota` / `Connection reset`) |
+| Hostname fuera del SAN (`127.0.0.2`) | `logs/tls/negativa-hostname-incorrecto.log` | `No subject alternative names matching IP address 127.0.0.2 found` |
+
+En el caso de otra CA, el servidor puede cerrar el socket antes de que el
+cliente lea la alerta TLS. El script acepta ese cierre como rechazo solo si el
+servidor sigue vivo, y después comprueba con un cliente legítimo que el servicio
+sigue usable (`logs/tls/negativas-cliente-valido.log`).
+
+Reproducir:
+
+```bash
+cd rmi
+./run/pruebas-tls.sh
+./run/pruebas-tls-negativas.sh
+```
+
+La guía para ejecutar T1 y revisar T2 está en `docs/TAREAS-TLS.md`. El modelo de
+seguridad, los límites y la matriz keystore/truststore están en
+`docs/SEGURIDAD.md`.
 
 ## Guion manual de las siete pruebas
 

@@ -6,11 +6,20 @@ public class Principal {
 
     public static void main(String[] args) {
 
-        String url = args.length > 0 ? args[0] : URL_POR_DEFECTO;
+        boolean tls = false;
+        int indice = 0;
+        if (args.length > 0 && "--tls".equals(args[0])) {
+            tls = true;
+            indice = 1;
+        }
+        String url = args.length > indice ? args[indice] : URL_POR_DEFECTO;
+        Transporte transporte = tls
+                ? new TransporteTls(url)
+                : new TransportePlano(url);
 
         SwingUtilities.invokeLater(() -> {
             SubastaVista vista = new SubastaVista();
-            SubastaControlador controlador = new SubastaControlador(vista, url);
+            SubastaControlador controlador = new SubastaControlador(vista, transporte);
 
             vista.asignarActionListener(controlador);
             vista.asignarListSelectionListener(controlador);

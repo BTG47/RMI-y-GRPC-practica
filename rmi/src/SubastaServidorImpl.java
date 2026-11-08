@@ -1,4 +1,6 @@
 import java.rmi.RemoteException;
+import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +23,13 @@ public class SubastaServidorImpl extends UnicastRemoteObject implements SubastaI
 
     public SubastaServidorImpl(SubastaModelo modelo) throws RemoteException {
         super();
+        this.modelo = modelo;
+    }
+
+    public SubastaServidorImpl(SubastaModelo modelo,
+                               RMIClientSocketFactory csf,
+                               RMIServerSocketFactory ssf) throws RemoteException {
+        super(0, csf, ssf);
         this.modelo = modelo;
     }
 

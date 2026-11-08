@@ -1,6 +1,9 @@
 # Archivos de configuración y trabajo local
 .partner/
 
+# Material TLS de demo: contiene claves privadas, se regenera con un script
+rmi/tls/
+
 # Artefactos compilados de Java
 *.class
 

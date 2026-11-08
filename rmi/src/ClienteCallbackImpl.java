@@ -1,4 +1,6 @@
 import java.rmi.RemoteException;
+import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 
 public class ClienteCallbackImpl extends UnicastRemoteObject
@@ -9,6 +11,13 @@ public class ClienteCallbackImpl extends UnicastRemoteObject
     private final SubastaControlador controlador;
 
     public ClienteCallbackImpl(SubastaControlador controlador) throws RemoteException {
+        this.controlador = controlador;
+    }
+
+    public ClienteCallbackImpl(SubastaControlador controlador,
+                               RMIClientSocketFactory csf,
+                               RMIServerSocketFactory ssf) throws RemoteException {
+        super(0, csf, ssf);
         this.controlador = controlador;
     }
 
